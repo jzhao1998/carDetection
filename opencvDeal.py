@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
- 
+import time
 #由轮廓的顶点得到轮廓的中心坐标
 def getCenter(list):
     center=[0,0]
@@ -12,6 +12,7 @@ def getCenter(list):
         center[i]=int(center[i]/len(list))
     return center
 
+print(time.time())
 #读取视频
 cap = cv2.VideoCapture("DJI_0005.MP4")
 #查看是否打开文件
@@ -34,35 +35,36 @@ while(cap.isOpened()):
         median = cv2.medianBlur(currentframe,3)
         #设置阀值，主要是筛去一些因为光线变换导致的细微变换
         #对于其他情况，从这里开始，需要一步步调整参数
-        ret, threshold_frame = cv2.threshold(currentframe, 20, 255, cv2.THRESH_BINARY)
+        ret, threshold_frame = cv2.threshold(currentframe, 25, 255, cv2.THRESH_BINARY)
         #设置膨胀核
         kernel = np.ones((5, 5), np.uint8)
         #通过膨胀操作扩大车辆面积并抹去一些细小黑色部分
-        dilation=cv2.dilate(median,kernel,iterations=5)
+        dilation=cv2.dilate(median,kernel,iterations=4)
+        #erosion=cv2.erode(dilation,kernel,iterations=1)
         #设置阀值，主要是筛去一些因为光线变换导致的细微变换
-        _, binary = cv2.threshold(dilation,20,255,cv2.THRESH_BINARY)
+        _, binary = cv2.threshold(dilation,20,100,cv2.THRESH_BINARY)
         #通过cv2.RETR_EXTERNAL的mode得到最外部的轮廓
         contours, hierarchy = cv2.findContours(binary,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)  
         index=[]
         for i in range(len(contours)):
-            if(cv2.contourArea(contours[i])<2000):
-                index.append(i)
+            if(cv2.contourArea(contours[i])<1000):
+              index.append(i)
         contours=np.delete(contours,index)
         #把中心写到txt中以便保存，之后直接读取txt就行了。不然的话可以省略这一步
-        file=open("centers.txt",'a')
+        file=open("b.txt",'a')
         for i in contours:
             c=getCenter(i)
             file.write(str(c[0])+",")
             file.write(str(c[1])+"|")
         file.write("\n")
         file.close()
-        cv2.drawContours(median,contours,-1,100,3)  
+        cv2.drawContours(binary,contours,-1,255,3)  
         #plt可以一张一张的播放图片
         #plt.imshow(median)
         #plt.show()
         cv2.namedWindow("median", 0)
         cv2.resizeWindow('median', 960, 540)
-        cv2.imshow('median',median) 
+        cv2.imshow('median',binary) 
  
         # 按Q退出
         if cv2.waitKey(33) & 0xFF == ord('q'):
@@ -73,3 +75,4 @@ while(cap.isOpened()):
 
 cap.release()
 cv2.destroyAllWindows()
+print(time.time())
