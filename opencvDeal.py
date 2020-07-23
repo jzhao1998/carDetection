@@ -12,6 +12,14 @@ def getCenter(list):
         center[i]=int(center[i]/len(list))
     return center
 
+def getRectangle(list):
+  list=list.tolist()
+  min_x=min([i[0][0] for i in list])
+  min_y=min([i[0][1] for i in list])
+  max_x=max([i[0][0] for i in list])
+  max_y=max([i[0][1] for i in list])
+  return (min_x,min_y),(max_x,max_y)
+
 print(time.time())
 #读取视频
 cap = cv2.VideoCapture("DJI_0005.MP4")
@@ -39,7 +47,7 @@ while(cap.isOpened()):
         #设置膨胀核
         kernel = np.ones((5, 5), np.uint8)
         #通过膨胀操作扩大车辆面积并抹去一些细小黑色部分
-        dilation=cv2.dilate(median,kernel,iterations=4)
+        dilation=cv2.dilate(median,kernel,iterations=3)
         #erosion=cv2.erode(dilation,kernel,iterations=1)
         #设置阀值，主要是筛去一些因为光线变换导致的细微变换
         _, binary = cv2.threshold(dilation,20,100,cv2.THRESH_BINARY)
@@ -51,16 +59,19 @@ while(cap.isOpened()):
               index.append(i)
         contours=np.delete(contours,index)
         #把中心写到txt中以便保存，之后直接读取txt就行了。不然的话可以省略这一步
-        file=open("b.txt",'a')
+        file=open("centers.txt",'a')
         for i in contours:
-            c=getCenter(i)
-            file.write(str(c[0])+",")
-            file.write(str(c[1])+"|")
+          start,end=getRectangle(i)
+          cv2.rectangle(binary,start,end,255,3)
+          file.write(str(start[0])+",")
+          file.write(str(start[1])+",")
+          file.write(str(end[0])+",")
+          file.write(str(end[1])+"|")
         file.write("\n")
         file.close()
-        cv2.drawContours(binary,contours,-1,255,3)  
+        #cv2.drawContours(binary,contours,-1,255,3)  
         #plt可以一张一张的播放图片
-        #plt.imshow(median)
+        #plt.imshow(binary)
         #plt.show()
         cv2.namedWindow("median", 0)
         cv2.resizeWindow('median', 960, 540)
